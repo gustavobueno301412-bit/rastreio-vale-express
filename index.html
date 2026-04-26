@@ -132,9 +132,10 @@
         const caixa = document.getElementById('caixa-container');
         const motoEmoji = document.getElementById('moto-emoji');
       
+        // Limpa os selos ativos
         document.querySelectorAll('.selo').forEach(s => s.classList.remove('ativo'));
        
-        // PADRÃO: MOVIMENTO LIGADO
+        // Configuração padrão de movimento (Saindo e Coletado)
         faixa.style.animationPlayState = "running";
         player.classList.add('balanco');
         caixa.style.display = "none";
@@ -150,7 +151,6 @@
             msg.innerText = "📦 Pedido coletado! Estamos a caminho.";
             player.style.left = "50%";
             caixa.style.display = "flex";
-            // AQUI ELE CONTINUA ANDANDO (Balanço e estrada ativos)
         } else if (status === "no local") {
             document.getElementById('selo1').classList.add('ativo');
             document.getElementById('selo2').classList.add('ativo');
@@ -158,19 +158,29 @@
             msg.innerText = "📍 O motoboy está no seu endereço!";
             player.style.left = "85%";
             caixa.style.display = "flex";
-            // AQUI ELE PARA (Estaciona no destino)
+            // PARAR TUDO: Chegou no destino
             faixa.style.animationPlayState = "paused";
             player.classList.remove('balanco');
         } else if (status === "finalizado") {
+            // Ativa todos os selos
             document.querySelectorAll('.selo').forEach(s => s.classList.add('ativo'));
             msg.innerText = "🏁 ENTREGA REALIZADA! 🤝🥳";
             msg.style.color = "#28a745";
+           
+            // Trava a posição no final (85%) e troca o emoji
             player.style.left = "85%";
             motoEmoji.innerText = "🏁";
+           
+            // GARANTE QUE PAROU: Remove balanço e pausa a estrada
             player.classList.remove('balanco');
             faixa.style.animationPlayState = "paused";
+           
+            // Esconde a caixinha pois já entregou
+            caixa.style.display = "none";
         }
     }
+
+ 
 
     function gerarTrafego() {
         const pista = document.getElementById('pista-contramao');
