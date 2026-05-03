@@ -19,10 +19,8 @@
         .selo img { width: 45px; height: 45px; border-radius: 50%; background: #fff; padding: 5px; border: 1px solid #eee; }
         .selo span { display: block; font-size: 8px; font-weight: bold; margin-top: 5px; text-transform: uppercase; color: #555; }
        
-        /* ESTRADA AJUSTADA */
         .estrada-box { position: relative; height: 160px; background: #333; margin: 20px; border-radius: 20px; overflow: hidden; border-bottom: 6px solid #111; }
        
-        /* Faixa tracejada no meio para dividir as mãos */
         .faixa-divisoria {
             position: absolute;
             top: 50%;
@@ -31,10 +29,8 @@
             background: linear-gradient(to right, #fff 50%, transparent 50%);
             background-size: 40px 100%;
             animation: moveRoad 0.7s linear infinite;
-            animation-play-state: running;
         }
 
-        /* Pistas */
         .pista-contramao { position: absolute; top: 5px; width: 100%; height: 65px; z-index: 5; }
         .carro-extra { position: absolute; right: -100px; z-index: 6; pointer-events: none; }
 
@@ -51,6 +47,15 @@
         @keyframes vrum { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
        
         #status-msg { text-align: center; font-weight: bold; color: #d32f2f; padding: 10px; text-transform: uppercase; font-size: 0.9rem; min-height: 40px; }
+
+        /* --- HISTÓRICO --- */
+        .timeline-container { padding: 15px 20px; background: #fff; border-top: 1px solid #eee; }
+        .timeline-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 0.85rem; }
+        .timeline-status { font-weight: bold; color: #333; }
+        .timeline-hora { color: #666; font-family: monospace; }
+        .tempo-total-box { margin-top: 10px; background: var(--vale-black); color: var(--vale-yellow); padding: 10px; border-radius: 12px; text-align: center; font-weight: bold; }
+        .btn-limpar { width: 100%; margin-top: 15px; padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 10px; color: #666; font-size: 11px; cursor: pointer; }
+        .aviso-limpar { font-size: 9px; color: #999; text-align: center; display: block; margin-top: 5px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -77,7 +82,6 @@
     <div class="estrada-box">
         <div class="pista-contramao" id="pista-contramao"></div>
         <div class="faixa-divisoria" id="faixa"></div>
-       
         <div class="player-group" id="player-group">
             <img id="moto-foto-mini" class="foto-flutuante" src="https://img.icons8.com/color/96/user.png">
             <div class="moto-area">
@@ -89,6 +93,13 @@
             </div>
         </div>
     </div>
+
+    <div class="timeline-container" id="timeline-box" style="display:none;">
+        <div id="lista-eventos"></div>
+        <div id="tempo-total" class="tempo-total-box" style="display:none;"></div>
+        <button class="btn-limpar" onclick="limparHistorico()">🗑️ LIMPAR HISTÓRICO DE HORÁRIOS</button>
+        <span class="aviso-limpar">⚠️ Não esqueça de limpar ao finalizar para uma nova entrega</span>
+    </div>
 </div>
 
 <script>
@@ -97,6 +108,7 @@
     const motoNome = urlParams.get('moto');
    
     let statusAtualGlobal = "";
+    // RECOLOCADOS TODOS OS SEUS VEÍCULOS ORIGINAIS:
     const emojisExtras = ['🚙','🚴🏻‍♂️','🚗','🛻','🚐','🚚','🚛','🚜','🚒','🚑','🚓','🚕'];
 
     async function atualizar() {
@@ -118,10 +130,8 @@
                     document.getElementById('moto-foto-mini').src = mInfo.foto;
                 }
             }
-
             statusAtualGlobal = meuPedido ? meuPedido.status.toLowerCase() : "finalizado";
             aplicarAnimacao(statusAtualGlobal);
-
         } catch (e) { console.log("Erro de conexão."); }
     }
 
@@ -131,11 +141,40 @@
         const msg = document.getElementById('status-msg');
         const caixa = document.getElementById('caixa-container');
         const motoEmoji = document.getElementById('moto-emoji');
-      
-        // Limpa os selos ativos
-        document.querySelectorAll('.selo').forEach(s => s.classList.remove('ativo'));
        
-        // Configuração padrão de movimento (Saindo e Coletado)
+        let historico = JSON.parse(localStorage.getItem('vale_historico')) || [];
+        if (status !== "" && !historico.find(h => h.status === status)) {
+            const agora = new Date();
+            historico.push({
+                status: status,
+                hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                timestamp: agora.getTime()
+            });
+            localStorage.setItem('vale_historico', JSON.stringify(historico));
+        }
+
+        const timelineBox = document.getElementById('timeline-box');
+        const listaEventos = document.getElementById('lista-eventos');
+        if (historico.length > 0) {
+            timelineBox.style.display = "block";
+            listaEventos.innerHTML = historico.map(h => `
+                <div class="timeline-item">
+                    <span class="timeline-status">📍 ${h.status.toUpperCase()}</span>
+                    <span class="timeline-hora">${h.hora}</span>
+                </div>
+            `).join('');
+        }
+
+        if (status === "finalizado" && historico.length > 1) {
+            const inicio = historico[0].timestamp;
+            const fim = historico[historico.length - 1].timestamp;
+            const diffMinutos = Math.floor((fim - inicio) / 60000);
+            const tempoTotalDiv = document.getElementById('tempo-total');
+            tempoTotalDiv.style.display = "block";
+            tempoTotalDiv.innerText = `⏱️ ENTREGA CONCLUÍDA EM ${diffMinutos} MIN`;
+        }
+
+        document.querySelectorAll('.selo').forEach(s => s.classList.remove('ativo'));
         faixa.style.animationPlayState = "running";
         player.classList.add('balanco');
         caixa.style.display = "none";
@@ -158,29 +197,26 @@
             msg.innerText = "📍 O motoboy está no seu endereço!";
             player.style.left = "85%";
             caixa.style.display = "flex";
-            // PARAR TUDO: Chegou no destino
             faixa.style.animationPlayState = "paused";
             player.classList.remove('balanco');
         } else if (status === "finalizado") {
-            // Ativa todos os selos
             document.querySelectorAll('.selo').forEach(s => s.classList.add('ativo'));
             msg.innerText = "🏁 ENTREGA REALIZADA! 🤝🥳";
             msg.style.color = "#28a745";
-           
-            // Trava a posição no final (85%) e troca o emoji
             player.style.left = "85%";
             motoEmoji.innerText = "🏁";
-           
-            // GARANTE QUE PAROU: Remove balanço e pausa a estrada
             player.classList.remove('balanco');
             faixa.style.animationPlayState = "paused";
-           
-            // Esconde a caixinha pois já entregou
             caixa.style.display = "none";
         }
     }
 
- 
+    function limparHistorico() {
+        if(confirm("Deseja apagar os horários registrados?")) {
+            localStorage.removeItem('vale_historico');
+            location.reload();
+        }
+    }
 
     function gerarTrafego() {
         const pista = document.getElementById('pista-contramao');
@@ -189,28 +225,17 @@
         car.className = 'carro-extra';
         car.innerText = emoji;
        
+        // LÓGICA DE VELOCIDADE DA BIKE PRESERVADA
         const isBike = (emoji === '🚴🏻‍♂️');
         car.style.fontSize = isBike ? '30px' : '52px';
-
-        // LÓGICA DE VELOCIDADE:
-        // Moto PARADA quando status é "No Local" ou "Finalizado"
         const motoParada = (statusAtualGlobal === "no local" || statusAtualGlobal === "finalizado");
        
-        let duracao = motoParada ? 1200 : 4000; // Carros voam em 1.2s se a moto parar
-        if (isBike) duracao = motoParada ? 3000 : 8000; // Bike mais lenta
+        let duracao = motoParada ? 1200 : 4000;
+        if (isBike) duracao = motoParada ? 3000 : 8000;
 
         pista.appendChild(car);
-
-        car.animate([
-            { right: '-100px' },
-            { right: '115%' }
-        ], {
-            duration: duracao,
-            easing: 'linear'
-        }).onfinish = () => car.remove();
-
-        const proximo = Math.floor(Math.random() * 3000) + 4000;
-        setTimeout(gerarTrafego, proximo);
+        car.animate([{ right: '-100px' }, { right: '115%' }], { duration: duracao, easing: 'linear' }).onfinish = () => car.remove();
+        setTimeout(gerarTrafego, Math.floor(Math.random() * 3000) + 4000);
     }
 
     setInterval(atualizar, 5000);
@@ -219,3 +244,5 @@
 </script>
 </body>
 </html>
+
+ 
